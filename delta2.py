@@ -3,15 +3,7 @@ import subprocess
 import pandas as pd
 import numpy as np
 import difflib
-
-
-# Remove special characters (CB export handled)
-def remove_sp_ch(df, cols_to_filter):
-	specs_to_remove = ['~', '__', '\'\'', '\\_x000D_', '\\\\', '\\r']
-	for col in cols_to_filter:
-		df[col] = df[col].replace(specs_to_remove, '', regex=True)
-
-	return df
+import functools		
 
 
 def beutifulize(worksheet, df):
@@ -51,28 +43,55 @@ def beutifulize(worksheet, df):
 	# # Hide unused columns
 	cols = ['Modified at', 'CR Referenz', 'Old Description']
 	cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
-	hid_format = workbook.add_format({'text_wrap': False, 'font_color': 'red'})
+	hid_format = workbook.add_format({'text_wrap': False})
 	for idx in cols_idx:
-		worksheet.set_column(idx, idx, None, hid_format, {'hidden': False})
+		worksheet.set_column(idx, idx, None, hid_format, {'hidden': True})
 
 
-def highlight_diff(df_out, new, changed, deleted, worksheet):
-	def highlight_row(worksheet, r_idx, formatter):
-		for i in r_idx:
-			worksheet.set_row(i, None, formatter)
+# def highlight_diff_cells(df_out, new, changed, deleted, worksheet, tracked_cols):
+# 	def highlight_cell(worksheet, r_idx, col_idx, formatter):
+# 		for i in r_idx:
+# 			worksheet.set_row(i, None, formatter)
 
-	ch_format = workbook.add_format({'bg_color': '#ffd399', 'text_wrap': True, 'border': 3})
-	changed_idx = [df_out.index.get_loc(i) + 1 for i in changed.index.tolist()]
-	highlight_row(worksheet, changed_idx, ch_format)
+# 	for col in tracked_cols:
+# 		col_idx = df_out.columns.get_loc(col)
+# 		ch_format = workbook.add_format({'bg_color': '#ffd399', 'border': 3})
+# 		changed_idx = [df_out.index.get_loc(i) + 1 for i in changed.index.tolist()]
 
-	new_format = workbook.add_format({'bg_color': '#cae3d3', 'text_wrap': True, 'border': 3})
-	new_idx = [df_out.index.get_loc(i) + 1 for i in new.index.tolist()]
-	highlight_row(worksheet, new_idx, new_format)
+# 		highlight_cell(worksheet, changed_idx, col_idx, ch_format)
 
-	del_format = workbook.add_format({'bg_color': '#ff8a82', 'text_wrap': True, 'border': 3})
-	del_idx = [df_out.index.get_loc(i) + 1 for i in deleted.index.tolist()]
-	highlight_row(worksheet, del_idx, del_format)
+# 		new_format = workbook.add_format({'bg_color': '#cae3d3', 'border': 3})
+# 		new_idx = [df_out.index.get_loc(i) + 1 for i in new.index.tolist()]
+# 		highlight_row(worksheet, new_idx, new_format)
 
+# 		del_format = workbook.add_format({'bg_color': '#ff8a82', 'border': 3})
+# 		del_idx = [df_out.index.get_loc(i) + 1 for i in deleted.index.tolist()]
+# 		highlight_row(worksheet, del_idx, del_format)
+
+def highlight_diff_cells(df_out, worksheet, col_name):
+	formatters = {'New': workbook.add_format({'bg_color': '#cae3d3', 'border': 3}),
+				  'Changed': workbook.add_format({'bg_color': '#ffd399', 'border': 3}),
+				  'Deleted': workbook.add_format({'bg_color': '#ff8a82', 'border': 3})}
+
+	col_idx = df_out.columns.get_loc(col_name) + 1
+	worksheet.write(4, col_idx, str(df_out.iloc[5, col_idx]), formatters['New'])
+	# print(col_idx)
+	for typ, form in formatters.items():
+		row_idxs = [df_out.index.get_loc(i) + 1 for i in df_out[df_out['Delta'] == typ].index.tolist()]
+		print(row_idxs)
+		print(df_out.iloc[48, df_out.columns.get_loc("Description")]) 
+	# 	map(lambda row: worksheet.write(row, col_idx, 'lol', form), row_idxs)
+		# changed_idx = df_out.iloc[row - 1, col_idx]
+		
+		# highlight_cell(worksheet, changed_idx, col_idx, ch_format)
+
+		# new_format = 
+		# new_idx = [df_out.index.get_loc(i) + 1 for i in new.index.tolist()]
+		# highlight_row(worksheet, new_idx, new_format)
+
+		# del_format = 
+		# del_idx = [df_out.index.get_loc(i) + 1 for i in deleted.index.tolist()]
+		# highlight_row(worksheet, del_idx, del_format)
 
 def find_diff(text1, text2):
 	def insert_el(diff, add_s, rem_s):
@@ -112,44 +131,81 @@ def highlight_diff_chars(df_old, df_new, changed, worksheet):
 		worksheet.write_rich_string(out_df.index.get_loc(ch_i) + 1, out_df.columns.get_loc('Diff') + 1, *diff)
 
 
+def preprocess(df):
+	# Remove special characters (CB export handled)
+	def remove_sp_ch(df):
+		cols_to_filter = ['Description']
+		specs_to_remove = ['~', '__', '\'\'', '\\_x000D_', '\\\\', '\\r']
+		for col in cols_to_filter:
+			df[col] = df[col].replace(specs_to_remove, '', regex=True)
+		return df
+
+	# Set index column
+	def set_index(df, col_name, col_type):
+		df = df.astype({col_name: col_type})
+		df = df.set_index(col_name)
+		return df
+
+	# Filter special characters
+	df = remove_sp_ch(df)
+	# Set index column
+	df = set_index(df, 'ID', int)
+	# Hadle NaN != Nan
+	df = df.replace({np.nan: None}) 
+
+	return df
+
+
+def find_delta(df_old, df_new, tracked_cols):
+	persist = df_new[df_new.index.isin(df_old.index)]
+	new = df_new[~df_new.index.isin(df_old.index)]
+	deleted = df_old[~df_old.index.isin(df_new.index)]
+
+	changed = dict()
+	for col in tracked_cols:
+		changed[col] = persist[persist[col].ne(df_old[col])]
+
+	return new, changed, deleted
+
+
 f_old = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
 f_new = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
 
-cols_to_filter = ['Description']
-df_old = remove_sp_ch(pd.read_excel(f_old), cols_to_filter)
-df_new = remove_sp_ch(pd.read_excel(f_new), cols_to_filter)
+df_old = pd.read_excel(f_old)
+df_new = pd.read_excel(f_new)
 
-df_old = df_old.astype({'ID': int})
-df_new = df_new.astype({'ID': int})
-df_old = df_old.set_index('ID')
-df_new = df_new.set_index('ID')
+df_old, df_new = [preprocess(df) for df in [df_old, df_new]]
 
-# Hadle NaN != Nan
-df_old = df_old.replace({np.nan: None})
-df_new = df_new.replace({np.nan: None})
 
-persist = df_new[df_new.index.isin(df_old.index)]
+# Columns to track changed requrements
+tracked_cols = ['Description', 'Feature']
+new, changed, deleted = find_delta(df_old, df_new, tracked_cols)
 
-changed = persist[persist['Description'].ne(df_old['Description'])]
-new = df_new[~df_new.index.isin(df_old.index)]
-deleted = df_old[~df_old.index.isin(df_new.index)]
 
 # Filter out Information and Heading changes
 filter_info_heading = True
 if filter_info_heading:
 	ignoretypes = ['Information', 'Heading']
-	changed = changed[~changed['Type'].isin(ignoretypes)]
+	changed = {fe_c: changed[fe_c][~changed[fe_c]['Type'].isin(ignoretypes)] for fe_c in tracked_cols}
 	new = new[~new['Type'].isin(ignoretypes)]
 	deleted = deleted[~deleted['Type'].isin(ignoretypes)]
 
-n_changed = changed.shape[0]
+
+
+n_changed = functools.reduce(lambda left, right: pd.merge(left, right, how='outer', left_index=True, right_index=True), 
+			list(changed.values())).shape[0]  # Combile all changed columns and get size
 n_new = new.shape[0]
 n_deleted = deleted.shape[0]
+# print(changed[tracked_cols[0]].shape[0], changed[tracked_cols[1]].shape[0])
+# print(n_changed, tt.shape[0])
 
 out_df = df_new.copy()
 
 out_df.loc[out_df.index.isin(new.index), 'Delta'] = 'New'
-out_df.loc[out_df.index.isin(changed.index), 'Delta'] = 'Changed'
+for fe_c in tracked_cols:
+	out_df.loc[out_df.index.isin(changed[fe_c].index), 'Delta'] = 'Changed'
+
+
 
 show_deleted = True
 if show_deleted:
@@ -160,11 +216,10 @@ else:
 
 
 
-
-for ch_i in changed.index.tolist():
-	old_text = df_old.loc[ch_i]['Description']
-	out_df.at[ch_i, 'Old Description'] = old_text
-	# out_df.at[ch_i, 'Diff'] = ''.join(old_text)
+# Use first name given in tracked columns as a main column. Diff is found for this column.
+main_diff_col = tracked_cols[0]
+for ch_i in changed[main_diff_col].index.tolist():
+	out_df.at[ch_i, 'Old Description'] = df_old.loc[ch_i]['Description']
 
 
 col = out_df.pop('Description')
@@ -184,10 +239,14 @@ out_df.to_excel(writer, sheet_name='diff', index=True)
 workbook = writer.book
 worksheet = writer.sheets['diff']
 
+# changed = changed['Description'] 
 
-# highlight_diff(out_df, new, changed, deleted, worksheet)
-# beutifulize(worksheet, out_df)
-highlight_diff_chars(df_old, df_new, changed, worksheet)
+highlight_diff_chars(df_old, df_new, changed[main_diff_col], worksheet)
+# highlight_diff_cells(out_df, new, changed, deleted, worksheet, tracked_cols)
+highlight_diff_cells(out_df, worksheet, tracked_cols[0])
+
+beutifulize(worksheet, out_df)
+
 writer.save()
 
 # Open output file
