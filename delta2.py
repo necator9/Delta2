@@ -16,11 +16,13 @@ class Delta2(object):
 
 
 	def process(self):
-		out_df, changed = self.pd_diff.find_pd_diff(filter_info_heading=self.filter_info_heading)
+		out_df, changed, stats = self.pd_diff.find_pd_diff(filter_info_heading=self.filter_info_heading)
 
 		excel_diff = ExcelDiffHandler(self.out_file, out_df, self.main_diff_col)
 		excel_diff.format_exel_output(self.pd_diff.df_old, self.pd_diff.df_new, changed)
 		excel_diff.quit()
+
+		return *stats, sum(stats)  # (n_new, n_changed, n_deleted)
 
 
 class PandasDiffHandler(object):
@@ -71,7 +73,7 @@ class PandasDiffHandler(object):
 		# Filter out Information and Heading changes
 		if filter_info_heading:
 			ignoretypes = ['Information', 'Heading']
-			changed = {fe_c: changed[fe_c][~changed[fe_c]['Type'].isin(ignoretypes)] for fe_c in tracked_cols}
+			changed = {fe_c: changed[fe_c][~changed[fe_c]['Type'].isin(ignoretypes)] for fe_c in self.tracked_cols}
 			new = new[~new['Type'].isin(ignoretypes)]
 			deleted = deleted[~deleted['Type'].isin(ignoretypes)]
 
@@ -79,13 +81,11 @@ class PandasDiffHandler(object):
 					list(changed.values())).shape[0]  # Combile all changed columns and get size
 		n_new = new.shape[0]
 		n_deleted = deleted.shape[0]
-		# print(changed[tracked_cols[0]].shape[0], changed[tracked_cols[1]].shape[0])
-		# print(n_changed, tt.shape[0])
 
 		out_df = self.df_new.copy()
 
 		out_df.loc[out_df.index.isin(new.index), 'Delta'] = 'New'
-		for fe_c in tracked_cols:
+		for fe_c in self.tracked_cols:
 			out_df.loc[out_df.index.isin(changed[fe_c].index), 'Delta'] = 'Changed'
 			changed[fe_c]['Delta'] = 'Changed'
 
@@ -108,7 +108,7 @@ class PandasDiffHandler(object):
 		col = out_df.pop('Diff')
 		out_df.insert(6, col.name, col)
 
-		return out_df, changed
+		return out_df, changed, (n_new, n_changed, n_deleted)
 
 
 class ExcelDiffHandler(object):
@@ -244,20 +244,50 @@ class ExcelDiffHandler(object):
 		self.writer.save()
 
 
+class ExcelStatsHandler(object):
+	def __init__(self, out_file, out_df):
+		self.writer = pd.ExcelWriter(out_file, engine='xlsxwriter')
+		self.out_df = out_df
+		out_df.to_excel(self.writer, sheet_name='stats', index=False)
+		self.workbook = self.writer.book
+		self.worksheet = self.writer.sheets['stats']
 
-f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
-f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
+	def plot_pie(self, name, numbers_col, loc, rows):
+		# Chart total
+		chart = self.workbook.add_chart({'type': 'pie'})
+		module_name_col = 0
+		numbers_col = numbers_col
+		chart.add_series({'name': name,
+					             'categories': ['stats', 1, module_name_col, rows, module_name_col],
+					             'values':     ['stats', 1, numbers_col, rows, numbers_col],})
 
-out_file = r'C:\opt\diff_out.xlsx'
+		chart.set_title({'name': name})
+		chart.set_style(10)
+		self.worksheet.insert_chart(loc, chart, {'x_offset': 25, 'y_offset': 10})
 
-index_col = 'ID'
-tracked_cols = ['Description', 'Feature']  # Columns to track changed requrements
-# tracked_cols = ['Feature']  # Columns to track changed requrements
+	def format_exel_output(self, rows):
+		pies = [['Total', 4, 'H2'], ['New', 1, 'H17'], ['Changed', 2, 'P2'], ['Deleted', 3, 'P17']]
+		for name, numbers_col, loc in pies:
+			self.plot_pie(name, numbers_col, loc, rows)
+
+	def quit(self):
+		self.writer.save()
 
 
-d = Delta2(f_old_path, f_new_path, out_file, index_col, tracked_cols)
-d.process()
+if __name__ == '__main__':
+	f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
+	f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
 
-# Open output file
-excel = 'C:\\Program Files (x86)\\Microsoft Office\\Office16\\EXCEL.EXE'
-subprocess.call(('cmd', '/c', 'start', '', excel, '', out_file))
+	out_file = r'C:\opt\diff_out.xlsx'
+
+	index_col = 'ID'
+	tracked_cols = ['Description', 'Feature']  # Columns to track changed requrements
+	# tracked_cols = ['Feature']  # Columns to track changed requrements
+
+
+	d = Delta2(f_old_path, f_new_path, out_file, index_col, tracked_cols, filter_info_heading=True)
+	d.process()
+
+	# Open output file
+	excel = 'C:\\Program Files (x86)\\Microsoft Office\\Office16\\EXCEL.EXE'
+	subprocess.call(('cmd', '/c', 'start', '', excel, '', out_file))

@@ -4,12 +4,16 @@ import tkinter.filedialog as fd
 import customtkinter
 import sys
 import os
-from datetime import datetime
+from PIL import Image, ImageTk
+import pandas as pd
+
+import delta2
 
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 class CreateToolTip(object):
@@ -68,10 +72,9 @@ class CreateToolTip(object):
 
 
 class App(customtkinter.CTk):
-
     APP_NAME = "CustomTkinter complex example"
     WIDTH = 700
-    HEIGHT = 500
+    HEIGHT = 550
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,41 +92,109 @@ class App(customtkinter.CTk):
             self.bind("<Command-w>", self.on_closing)
             self.createcommand('tk::mac::Quit', self.on_closing)
 
-        # ============ create two CTkFrames ============
-
-        self.frame_left = customtkinter.CTkFrame(master=self,
-                                                 width=200,
-                                                 height=App.HEIGHT-40,
-                                                 corner_radius=5)
-        self.frame_left.place(relx=0.32, rely=0.5, anchor=tkinter.E)
-
-        self.frame_right = customtkinter.CTkFrame(master=self,
-                                                  width=420,
-                                                  height=App.HEIGHT-40,
-                                                  corner_radius=5)
-        self.frame_right.place(relx=0.365, rely=0.5, anchor=tkinter.W)
-
         # ============ frame_left ============
-
-
-
-        
-
-        # self.check_box_1 = customtkinter.CTkCheckBox(master=self.frame_left,
-        #                                              text="CTkCheckBox")
-        # self.check_box_1.place(relx=0.5, rely=0.92, anchor=tkinter.CENTER)
+        self.frame_left = customtkinter.CTkFrame(master=self,
+                                                 width=170,
+                                                 height=App.HEIGHT-30,
+                                                 corner_radius=2)
+        self.frame_left.place(relx=0.02, rely=0.5, anchor=tkinter.W)
 
         # ============ frame_right ============
+        frame_right_width = 490
+        frame_right_height = App.HEIGHT - 30
+        self.frame_right = customtkinter.CTkFrame(master=self,
+                                                  width=frame_right_width,
+                                                  height=frame_right_height,
+                                                  corner_radius=2)
+        self.frame_right.place(relx=0.98, rely=0.5, anchor=tkinter.E)
 
-        self.frame_info = customtkinter.CTkFrame(master=self.frame_right,
-                                                 width=350,
-                                                 height=150,
+        # ============ frame_right -> Frame select files ============ 
+        frame_f_select_width = frame_right_width - 30
+        self.frame_f_select = customtkinter.CTkFrame(master=self.frame_right,
+                                                     width=frame_f_select_width,
+                                                     height=240,
+                                                     corner_radius=1)
+        self.frame_f_select.place(relx=0.5, rely=0.03, anchor=tkinter.N)
+
+
+        self.select_label = customtkinter.CTkLabel(master=self.frame_f_select,
+                                                   text="Select files",
+                                                   width=150,
+                                                   height=20,
+                                                   corner_radius=8,
+                                                   fg_color=("gray76", "gray38"),  # <- custom tuple-color
+                                                  justify=tkinter.LEFT)
+        self.select_label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
+
+
+        listbox_width = 180
+        listbox_x_offset = 0.04
+        listbox_rely = 0.38
+
+        self.old_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
+        self.old_f_listbox.place(relx=listbox_x_offset, rely=listbox_rely, width=listbox_width, height=130, anchor=tkinter.NW)
+
+        old_f_scrollbar = tkinter.Scrollbar(self.old_f_listbox)
+        old_f_scrollbar.config(command=self.old_f_listbox.yview)
+        old_f_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.old_f_listbox.config(yscrollcommand=old_f_scrollbar.set)
+
+        add_list_image = ImageTk.PhotoImage(Image.open(PATH + "/images/add-list.png").resize((20, 20), Image.ANTIALIAS))
+        sel_but_rely = 0.12
+        self.old_file_b = customtkinter.CTkButton(master=self.frame_right,
+                                                  image=add_list_image,
+                                                  text="Old file/s",
+                                                  command=self.open_old_files,
+                                                  border_width=0,
+                                                  corner_radius=4,
+                                                  height=40,
+                                                  width=listbox_width)
+        self.old_file_b.place(relx=0.07, rely=sel_but_rely, anchor=tkinter.NW)
+
+        self.new_file_b = customtkinter.CTkButton(master=self.frame_right,
+                                                  image=add_list_image,
+                                                  text="New file/s",
+                                                  command=self.open_new_files,
+                                                  border_width=0,
+                                                  corner_radius=4,
+                                                  height=40,
+                                                  width=listbox_width)
+        self.new_file_b.place(relx=0.565, rely=sel_but_rely, anchor=tkinter.NW)
+
+        self.new_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
+        self.new_f_listbox.place(relx=1 - listbox_x_offset, rely=listbox_rely, width=listbox_width, height=130, anchor=tkinter.NE)
+        new_f_scrollbar = tkinter.Scrollbar(self.new_f_listbox)
+        new_f_scrollbar.config(command=self.new_f_listbox.yview)
+        new_f_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.new_f_listbox.config(yscrollcommand=new_f_scrollbar.set)
+
+        button_size = 40
+        self.del_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delete.png").resize((30, 30), Image.ANTIALIAS))
+        # self.delete_file_b = customtkinter.CTkButton(master=self.frame_f_select,
+        #                                              image=self.del_image,
+        #                                              text='',
+        #                                              command=self.delete_file,
+        #                                              height=button_size,
+        #                                              width=button_size,
+        #                                              border_width=0,
+        #                                              corner_radius=2)
+        # self.delete_file_b.place(relx=0.5, rely=0.835, anchor=tkinter.CENTER)
+        self.filetypes = (('Excel files', '*.xlsx'), ('All files', '*.*'))
+
+        self.old_files = list()
+        self.new_files = list()
+        self.new_names_trimmed = list()
+
+
+        # ============ frame_right -> frame_tracked_cols ============
+
+        self.frame_tracked_cols = customtkinter.CTkFrame(master=self.frame_right,
+                                                 width=frame_f_select_width,
+                                                 height=160,
                                                  corner_radius=1)
-        self.frame_info.place(relx=0.5, rely=0.5, anchor=tkinter.N)
+        self.frame_tracked_cols.place(relx=0.5, rely=0.52, anchor=tkinter.N)
 
-        # ============ frame_right -> frame_info ============
-
-        self.label_info_1 = customtkinter.CTkLabel(master=self.frame_info,
+        self.label_info_1 = customtkinter.CTkLabel(master=self.frame_tracked_cols,
                                                    text="Tracked columns",
                                                    width=150,
                                                    height=20,
@@ -133,56 +204,62 @@ class App(customtkinter.CTk):
         self.label_info_1.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
         # self.head1 = tkinter.Text(self.frame_left, height=2, width=30)
-        self.head1 = tkinter.Entry(self.frame_left)
-        # head1.insert(tkinter.END,'Tracked columns')
-        self.head1.place(relx=0.06, rely=0.5, height=200, width=100, anchor=tkinter.NW)
+        # self.head1 = tkinter.Entry(self.frame_left)
+        # # head1.insert(tkinter.END,'Tracked columns')
+        # self.head1.place(relx=0.06, rely=0.5, height=200, width=100, anchor=tkinter.NW)
 
-
-        self.col_entry = customtkinter.CTkEntry(master=self.frame_info,
+        col_width = 135
+        self.col_entry = customtkinter.CTkEntry(master=self.frame_tracked_cols,
                                placeholder_text="Enter columns",
-                               width=140,
-                               height=29,
+                               width=col_width,
+                               height=40,
                                corner_radius=1)
-        self.col_entry.place(relx=0.06, rely=0.22, anchor=tkinter.NW)
+        self.col_entry.place(relx=listbox_x_offset, rely=0.22, anchor=tkinter.NW)
 
-        self.add_button = customtkinter.CTkButton(master=self.frame_info,
-                                                text="Add",
+        button_size = 40
+        add_del_relx = 0.45
+        plus_image = ImageTk.PhotoImage(Image.open(PATH + "/images/plus.png").resize((15, 15), Image.ANTIALIAS))
+        self.add_button = customtkinter.CTkButton(master=self.frame_tracked_cols,
+                                                  image=plus_image,
+                                                  text='',
                                                 command=self.add_column,
                                                 border_width=0,
-                                                corner_radius=3)
-        self.add_button.place(relx=0.94, rely=0.2, anchor=tkinter.NE)
+                                                height=button_size,
+                                                width=button_size,
+                                                corner_radius=2)
+        self.add_button.place(relx=add_del_relx, rely=0.22, anchor=tkinter.NE)
 
         add_tip = 'Symbol difference (\"Diff\" column in the output file) is shown only for the first column in the list. Arrange the order as needed.'
         button1_ttp = CreateToolTip(self.add_button, add_tip)
 
-
-        self.delete_button = customtkinter.CTkButton(master=self.frame_info,
-                                                text="Delete",
+        self.delete_button = customtkinter.CTkButton(master=self.frame_tracked_cols,
+                                                image=self.del_image,
+                                                text='',
                                                 command=self.delete_column,
+                                                height=button_size,
+                                                width=button_size,
                                                 border_width=0,
-                                                corner_radius=3)
-        self.delete_button.place(relx=0.94, rely=0.66, anchor=tkinter.NE)
+                                                corner_radius=2)
+        self.delete_button.place(relx=add_del_relx, rely=0.69, anchor=tkinter.NE)
 
 
 
-        self.col_listbox = tkinter.Listbox(self.frame_info, selectmode=tkinter.BROWSE)
-        self.col_listbox.place(relx=0.06, rely=0.45, width=140, height=60, anchor=tkinter.NW)
+        self.col_listbox = tkinter.Listbox(self.frame_tracked_cols, selectmode=tkinter.BROWSE)
+        self.col_listbox.place(relx=listbox_x_offset, rely=0.53, width=col_width, height=65, anchor=tkinter.NW)
         for entry in self.tracked_cols:
             self.col_listbox.insert(tkinter.END, entry)
 
-        scrollbar = tkinter.Scrollbar(self.frame_info)
-        scrollbar.config(command=self.col_listbox.yview)
-        scrollbar.place(relx=0.4, rely=0.48, anchor=tkinter.NW)
-        # scrollbar.pack(side="right", fill="y")
-
+        scrollbar = tkinter.Scrollbar(self.col_listbox)
+        scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.col_listbox.config(yscrollcommand=scrollbar.set)
-        # scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
 
+        self.info_heading_cb = tkinter.IntVar()
+        self.track_info_heading_cb = customtkinter.CTkCheckBox(master=self.frame_tracked_cols,
+                                                               text="Track info & heading",
+                                                               variable=self.info_heading_cb)
+        self.track_info_heading_cb.place(relx=0.55, rely=0.47, anchor=tkinter.NW)
 
-
-
-
-        # self.progressbar = customtkinter.CTkProgressBar(master=self.frame_info,
+        # self.progressbar = customtkinter.CTkProgressBar(master=self.frame_tracked_cols,
         #                                                 width=250,
         #                                                 height=12)
         # self.progressbar.place(relx=0.5, rely=0.85, anchor=tkinter.S)
@@ -208,107 +285,18 @@ class App(customtkinter.CTk):
         # self.slider_2.place(x=20, rely=0.7, anchor=tkinter.W)
         # self.slider_2.set(0.7)
 
-        # self.label_info_2 = customtkinter.CTkLabel(master=self.frame_right,
-        #                                            text="CTkLabel: Lorem ipsum",
-        #                                            fg_color=None,
-        #                                            width=180,
-        #                                            height=20,
-        #                                            justify=tkinter.CENTER)
-        # self.label_info_2.place(x=310, rely=0.6, anchor=tkinter.CENTER)
-
-        # self.button_4 = customtkinter.CTkButton(master=self.frame_right,
-        #                                         height=25,
-        #                                         text="CTkButton",
-        #                                         command=self.button_event,
-        #                                         border_width=0,
-        #                                         corner_radius=8)
-        # self.button_4.place(x=310, rely=0.7, anchor=tkinter.CENTER)
-
-        # self.entry = customtkinter.CTkEntry(master=self.frame_right,
-        #                                     width=120,
-        #                                     height=25,
-        #                                     corner_radius=8,
-        #                                     placeholder_text="CTkEntry")
-        # self.entry.place(relx=0.33, rely=0.92, anchor=tkinter.CENTER)
-
-
-
-        # Frame file select ===================================================================
-
-        self.frame_f_select = customtkinter.CTkFrame(master=self.frame_right,
-                                                     width=350,
-                                                     height=200,
-                                                     corner_radius=1)
-        self.frame_f_select.place(relx=0.5, rely=0.05, anchor=tkinter.N)
-
-
-        self.select_label = customtkinter.CTkLabel(master=self.frame_f_select,
-                                                   text="Select files",
-                                                   width=150,
-                                                   height=20,
-                                                   corner_radius=8,
-                                                   fg_color=("gray76", "gray38"),  # <- custom tuple-color
-                                                  justify=tkinter.LEFT)
-        self.select_label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
-
-        self.old_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
-        self.old_f_listbox.place(relx=0.06, rely=0.34, width=140, height=130, anchor=tkinter.NW)
-        # for entry in self.tracked_cols:
-        #     self.col_listbox.insert(tkinter.END, entry)
-
-        old_f_scrollbar = tkinter.Scrollbar(self.frame_f_select)
-        old_f_scrollbar.config(command=self.old_f_listbox.yview)
-        old_f_scrollbar.place(relx=0.4, rely=0.37, height=120, anchor=tkinter.NW)
-        self.old_f_listbox.config(yscrollcommand=old_f_scrollbar.set)
-
-        self.old_file_b = customtkinter.CTkButton(master=self.frame_right,
-                                                  text="+ Old file/s",
-                                                  command=self.open_old_files,
-                                                  border_width=0,
-                                                  corner_radius=4,
-                                                  width=140)
-        self.old_file_b.place(relx=0.135, rely=0.12, anchor=tkinter.NW)
-
-        self.new_file_b = customtkinter.CTkButton(master=self.frame_right,
-                                                  text="+ New file/s",
-                                                  command=self.open_new_files,
-                                                  border_width=0,
-                                                  corner_radius=4,
-                                                  width=140)
-        self.new_file_b.place(relx=0.535, rely=0.12, anchor=tkinter.NW)
-
-        self.new_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
-        self.new_f_listbox.place(relx=0.54, rely=0.34, width=140, height=130, anchor=tkinter.NW)
-        # for entry in self.tracked_cols:
-        #     self.col_listbox.insert(tkinter.END, entry)
-
-        new_f_scrollbar = tkinter.Scrollbar(self.frame_f_select)
-        new_f_scrollbar.config(command=self.new_f_listbox.yview)
-        new_f_scrollbar.place(relx=0.88, rely=0.37, height=120, anchor=tkinter.NW)
-        self.new_f_listbox.config(yscrollcommand=new_f_scrollbar.set)
-
-        self.filetypes = (('Excel files', '*.xlsx'), ('All files', '*.*'))
-
-        self.old_files = list()
-        self.new_files = list()
-
         self.start_b = customtkinter.CTkButton(master=self.frame_right,
                                                text="Start",
+                                               height=40,
                                                command=self.process,
                                                border_width=0,
                                                corner_radius=4,
                                                width=140)
-        self.start_b.place(relx=0.535, rely=0.88, anchor=tkinter.NW)
+        self.start_b.place(relx=0.97, rely=0.88, anchor=tkinter.NE)
+        self.out_dir = str()
+        self.output_names = list()
 
-        # self.out_dir_b = customtkinter.CTkButton(master=self.frame_right,
-        #                                          text="Out dir",
-        #                                          command=self.select_out_dir,
-        #                                          border_width=0,
-        #                                          corner_radius=4,
-        #                                          width=140)
-        # self.out_dir_b.place(relx=0.135, rely=0.88, anchor=tkinter.NW) # 
 
-        # self.out_dir = str()
 
 
         # self.progressbar.set(0.65)
@@ -327,6 +315,14 @@ class App(customtkinter.CTk):
     	print(self.col_listbox.get(0, 100))
     	# print(self.col_listbox.curselection())
 
+    def delete_file(self):
+        selection_old = self.old_f_listbox.curselection()
+        selection_new = self.new_f_listbox.curselection()
+        print(selection_old)
+        if selection_old:
+            self.old_f_listbox.delete(selection_old[0])
+        elif selection_new:
+            self.new_f_listbox.delete(selection_new[0])
 
     def delete_column(self):
         selection = self.col_listbox.curselection()
@@ -361,45 +357,53 @@ class App(customtkinter.CTk):
 
     def open_new_files(self):
         self.new_files = list()
+        self.new_names_trimmed = list()
         self.new_f_listbox.delete(0, tkinter.END)
         self.new_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
         for i, entry in enumerate(self.new_files):
             trim = os.path.basename(entry)
+            self.new_names_trimmed.append(trim)
             self.new_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
 
 
-    # def select_out_dir(self):
-    #     self.out_dir = fd.askdirectory(title='Choose an output directory')
-
     def process(self):
-        # if len(self.old_files) != len(self.new_files):
-        #     tkinter.messagebox.showerror('Configuration error', 'Amount of files does not match between old and new lists ')
-        #     return 1
-        # if len(self.old_files) == 0 or len(self.new_files) == 0:
-        #     tkinter.messagebox.showerror('Configuration error', 'At least one file should be selected to compare')
-        #     return 1
-        # self.tracked_cols = self.get_all_columns()
-        # if len(self.tracked_cols) == 0:
-        #     tkinter.messagebox.showerror('Configuration error', 'At least one tracked column should be defined')
-        #     return 1
-
-
+        if len(self.old_files) != len(self.new_files):
+            tkinter.messagebox.showerror('Configuration error', 'Amount of files does not match between old and new lists ')
+            return 1
+        if len(self.old_files) == 0 or len(self.new_files) == 0:
+            tkinter.messagebox.showerror('Configuration error', 'At least one file should be selected to compare')
+            return 1
+        self.tracked_cols = self.get_all_columns()
+        if len(self.tracked_cols) == 0:
+            tkinter.messagebox.showerror('Configuration error', 'At least one tracked column should be defined')
+            return 1
         self.out_dir = fd.askdirectory(title='Choose an output directory')
         if len(self.out_dir) == 0:
             tkinter.messagebox.showerror('Configuration error', 'An output directory must be selected')
             return 1
 
+        self.output_names = [os.path.join(self.out_dir, name.replace('.xlsx', '_delta.xlsx')) for name in self.new_names_trimmed]
 
+        index_col = 'ID'
+        filter_info_heading = not self.info_heading_cb.get()
 
+        stats = list()
 
-        # if len(self.out_dir) == 0:
-        #     self.out_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'Delta2', datetime.now().strftime("%H-%M-%S_%d.%m.%Y"))
-        #     tkinter.messagebox.showinfo('Info', f'Outputting into default directory: {self.out_dir}')
-        #     if not os.path.exists(self.out_dir):
-        #         os.makedirs(self.out_dir)
+        try:
+            for f_old_path, f_new_path, out_file, module in zip(self.old_files, self.new_files, self.output_names, self.new_names_trimmed):
+                d = delta2.Delta2(f_old_path, f_new_path, out_file, index_col, self.tracked_cols, filter_info_heading)
+                stats.append([module.split(' ')[0], *d.process()])
 
+            stats_df = pd.DataFrame(stats, columns=['Module', 'New', 'Changed', 'Deleted', 'Total'])
+            sh = delta2.ExcelStatsHandler(os.path.join(self.out_dir, 'Statistics.xlsx'), stats_df)
+            sh.format_exel_output(stats_df.shape[0])
+            sh.quit()
+        except PermissionError as err:
+            tkinter.messagebox.showerror('Execution error', 'Permission denied: close related *.xlsx files and repeat')
+            return 1
 
-
+        tkinter.messagebox.showinfo(title='Info', message='Processing completed!')
+        
 
 if __name__ == "__main__":
     app = App()
