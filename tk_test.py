@@ -1,7 +1,10 @@
 import tkinter
 import tkinter.messagebox
+import tkinter.filedialog as fd
 import customtkinter
 import sys
+import os
+from datetime import datetime
 
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -102,19 +105,7 @@ class App(customtkinter.CTk):
 
         # ============ frame_left ============
 
-        self.button_1 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="Old file",
-                                                command=self.button_event,
-                                                border_width=0,
-                                                corner_radius=4)
-        self.button_1.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
-        self.button_2 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="New file",
-                                                command=self.button_event,
-                                                border_width=0,
-                                                corner_radius=4)
-        self.button_2.place(relx=0.5, rely=0.2, anchor=tkinter.CENTER)
 
         
 
@@ -128,7 +119,7 @@ class App(customtkinter.CTk):
                                                  width=350,
                                                  height=150,
                                                  corner_radius=1)
-        self.frame_info.place(relx=0.5, y=20, anchor=tkinter.N)
+        self.frame_info.place(relx=0.5, rely=0.5, anchor=tkinter.N)
 
         # ============ frame_right -> frame_info ============
 
@@ -233,20 +224,91 @@ class App(customtkinter.CTk):
         #                                         corner_radius=8)
         # self.button_4.place(x=310, rely=0.7, anchor=tkinter.CENTER)
 
-        self.entry = customtkinter.CTkEntry(master=self.frame_right,
-                                            width=120,
-                                            height=25,
-                                            corner_radius=8,
-                                            placeholder_text="CTkEntry")
-        self.entry.place(relx=0.33, rely=0.92, anchor=tkinter.CENTER)
+        # self.entry = customtkinter.CTkEntry(master=self.frame_right,
+        #                                     width=120,
+        #                                     height=25,
+        #                                     corner_radius=8,
+        #                                     placeholder_text="CTkEntry")
+        # self.entry.place(relx=0.33, rely=0.92, anchor=tkinter.CENTER)
 
-        self.button_5 = customtkinter.CTkButton(master=self.frame_right,
-                                                height=25,
-                                                text="Pront",
-                                                command=self.error,
-                                                border_width=0,
-                                                corner_radius=8)
-        self.button_5.place(relx=0.66, rely=0.92, anchor=tkinter.CENTER)
+
+
+        # Frame file select ===================================================================
+
+        self.frame_f_select = customtkinter.CTkFrame(master=self.frame_right,
+                                                     width=350,
+                                                     height=200,
+                                                     corner_radius=1)
+        self.frame_f_select.place(relx=0.5, rely=0.05, anchor=tkinter.N)
+
+
+        self.select_label = customtkinter.CTkLabel(master=self.frame_f_select,
+                                                   text="Select files",
+                                                   width=150,
+                                                   height=20,
+                                                   corner_radius=8,
+                                                   fg_color=("gray76", "gray38"),  # <- custom tuple-color
+                                                  justify=tkinter.LEFT)
+        self.select_label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
+
+        self.old_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
+        self.old_f_listbox.place(relx=0.06, rely=0.34, width=140, height=130, anchor=tkinter.NW)
+        # for entry in self.tracked_cols:
+        #     self.col_listbox.insert(tkinter.END, entry)
+
+        old_f_scrollbar = tkinter.Scrollbar(self.frame_f_select)
+        old_f_scrollbar.config(command=self.old_f_listbox.yview)
+        old_f_scrollbar.place(relx=0.4, rely=0.37, height=120, anchor=tkinter.NW)
+        self.old_f_listbox.config(yscrollcommand=old_f_scrollbar.set)
+
+        self.old_file_b = customtkinter.CTkButton(master=self.frame_right,
+                                                  text="+ Old file/s",
+                                                  command=self.open_old_files,
+                                                  border_width=0,
+                                                  corner_radius=4,
+                                                  width=140)
+        self.old_file_b.place(relx=0.135, rely=0.12, anchor=tkinter.NW)
+
+        self.new_file_b = customtkinter.CTkButton(master=self.frame_right,
+                                                  text="+ New file/s",
+                                                  command=self.open_new_files,
+                                                  border_width=0,
+                                                  corner_radius=4,
+                                                  width=140)
+        self.new_file_b.place(relx=0.535, rely=0.12, anchor=tkinter.NW)
+
+        self.new_f_listbox = tkinter.Listbox(self.frame_f_select, selectmode=tkinter.BROWSE)
+        self.new_f_listbox.place(relx=0.54, rely=0.34, width=140, height=130, anchor=tkinter.NW)
+        # for entry in self.tracked_cols:
+        #     self.col_listbox.insert(tkinter.END, entry)
+
+        new_f_scrollbar = tkinter.Scrollbar(self.frame_f_select)
+        new_f_scrollbar.config(command=self.new_f_listbox.yview)
+        new_f_scrollbar.place(relx=0.88, rely=0.37, height=120, anchor=tkinter.NW)
+        self.new_f_listbox.config(yscrollcommand=new_f_scrollbar.set)
+
+        self.filetypes = (('Excel files', '*.xlsx'), ('All files', '*.*'))
+
+        self.old_files = list()
+        self.new_files = list()
+
+        self.start_b = customtkinter.CTkButton(master=self.frame_right,
+                                               text="Start",
+                                               command=self.process,
+                                               border_width=0,
+                                               corner_radius=4,
+                                               width=140)
+        self.start_b.place(relx=0.535, rely=0.88, anchor=tkinter.NW)
+
+        # self.out_dir_b = customtkinter.CTkButton(master=self.frame_right,
+        #                                          text="Out dir",
+        #                                          command=self.select_out_dir,
+        #                                          border_width=0,
+        #                                          corner_radius=4,
+        #                                          width=140)
+        # self.out_dir_b.place(relx=0.135, rely=0.88, anchor=tkinter.NW) # 
+
+        # self.out_dir = str()
 
 
         # self.progressbar.set(0.65)
@@ -279,7 +341,6 @@ class App(customtkinter.CTk):
 
     def get_all_columns(self):
         self.tracked_cols = self.col_listbox.get(0, 100)
-
         return self.tracked_cols
 
     def add(self):
@@ -287,9 +348,58 @@ class App(customtkinter.CTk):
         Ans = self.get_all_columns()
         self.head1.insert(0, Ans)
 
-
     def error(self):
         tkinter.messagebox.showerror("Title", "Message")
+
+    def open_old_files(self):
+        self.old_files = list()
+        self.old_f_listbox.delete(0, tkinter.END)
+        self.old_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
+        for i, entry in enumerate(self.old_files):
+            trim = os.path.basename(entry)
+            self.old_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
+
+    def open_new_files(self):
+        self.new_files = list()
+        self.new_f_listbox.delete(0, tkinter.END)
+        self.new_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
+        for i, entry in enumerate(self.new_files):
+            trim = os.path.basename(entry)
+            self.new_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
+
+
+    # def select_out_dir(self):
+    #     self.out_dir = fd.askdirectory(title='Choose an output directory')
+
+    def process(self):
+        # if len(self.old_files) != len(self.new_files):
+        #     tkinter.messagebox.showerror('Configuration error', 'Amount of files does not match between old and new lists ')
+        #     return 1
+        # if len(self.old_files) == 0 or len(self.new_files) == 0:
+        #     tkinter.messagebox.showerror('Configuration error', 'At least one file should be selected to compare')
+        #     return 1
+        # self.tracked_cols = self.get_all_columns()
+        # if len(self.tracked_cols) == 0:
+        #     tkinter.messagebox.showerror('Configuration error', 'At least one tracked column should be defined')
+        #     return 1
+
+
+        self.out_dir = fd.askdirectory(title='Choose an output directory')
+        if len(self.out_dir) == 0:
+            tkinter.messagebox.showerror('Configuration error', 'An output directory must be selected')
+            return 1
+
+
+
+
+        # if len(self.out_dir) == 0:
+        #     self.out_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'Delta2', datetime.now().strftime("%H-%M-%S_%d.%m.%Y"))
+        #     tkinter.messagebox.showinfo('Info', f'Outputting into default directory: {self.out_dir}')
+        #     if not os.path.exists(self.out_dir):
+        #         os.makedirs(self.out_dir)
+
+
+
 
 if __name__ == "__main__":
     app = App()
