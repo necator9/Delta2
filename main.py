@@ -7,7 +7,7 @@ import os
 from PIL import Image, ImageTk
 import pandas as pd
 import traceback
-import threading
+
 
 import delta2
 
