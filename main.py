@@ -7,6 +7,7 @@ import os
 from PIL import Image, ImageTk
 import pandas as pd
 import traceback
+import threading
 
 import delta2
 
@@ -76,9 +77,9 @@ class CreateToolTip(object):
 
 
 class App(customtkinter.CTk):
-    APP_NAME = "CustomTkinter complex example"
+    APP_NAME = "Delta2"
     WIDTH = 700
-    HEIGHT = 550
+    HEIGHT = 470
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -101,7 +102,7 @@ class App(customtkinter.CTk):
                                                  width=170,
                                                  height=App.HEIGHT-30,
                                                  corner_radius=2)
-        self.frame_left.place(relx=0.02, rely=0.5, anchor=tkinter.W)
+        self.frame_left.place(relx=0.98, rely=0.5, anchor=tkinter.E)
 
         self.delta_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delta.png").resize((120, 120), Image.ANTIALIAS))
         delta_sign = customtkinter.CTkLabel(self.frame_left, 
@@ -114,8 +115,21 @@ class App(customtkinter.CTk):
         self.progressbar = customtkinter.CTkProgressBar(master=self.frame_left,
                                                         width=120,
                                                         height=12)
-        self.progressbar.place(relx=0.5, rely=0.32, anchor=tkinter.S)
+        self.progressbar.place(relx=0.5, rely=0.91, anchor=tkinter.S)
         self.progressbar.set(0)
+
+        self.proc_image = ImageTk.PhotoImage(Image.open(PATH + "/images/Update_thin.png").resize((30, 30), Image.ANTIALIAS))
+        self.start_b = customtkinter.CTkButton(master=self.frame_left,
+                                               image=self.proc_image,
+                                               text="Start",
+                                               height=40,
+                                               command=self.wrap_process,
+                                               border_width=0,
+                                               corner_radius=4,
+                                               width=140)
+        self.start_b.place(relx=0.92, rely=0.75, anchor=tkinter.NE)
+        self.out_dir = str()
+        self.output_names = list()
 
         # ============ frame_right ============
         frame_right_width = 490
@@ -124,7 +138,7 @@ class App(customtkinter.CTk):
                                                   width=frame_right_width,
                                                   height=frame_right_height,
                                                   corner_radius=2)
-        self.frame_right.place(relx=0.98, rely=0.5, anchor=tkinter.E)
+        self.frame_right.place(relx=0.02, rely=0.5, anchor=tkinter.W)
 
         # ============ frame_right -> Frame select files ============ 
         frame_f_select_width = frame_right_width - 30
@@ -188,21 +202,20 @@ class App(customtkinter.CTk):
 
         button_size = 40
         self.del_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delete.png").resize((30, 30), Image.ANTIALIAS))
-        # self.delete_file_b = customtkinter.CTkButton(master=self.frame_f_select,
-        #                                              image=self.del_image,
-        #                                              text='',
-        #                                              command=self.delete_file,
-        #                                              height=button_size,
-        #                                              width=button_size,
-        #                                              border_width=0,
-        #                                              corner_radius=2)
-        # self.delete_file_b.place(relx=0.5, rely=0.835, anchor=tkinter.CENTER)
+        self.delete_file_b = customtkinter.CTkButton(master=self.frame_f_select,
+                                                     image=self.del_image,
+                                                     text='',
+                                                     command=self.delete_file,
+                                                     height=button_size,
+                                                     width=button_size,
+                                                     border_width=0,
+                                                     corner_radius=2)
+        self.delete_file_b.place(relx=0.5, rely=0.835, anchor=tkinter.CENTER)
         self.filetypes = (('Excel files', '*.xlsx'), ('All files', '*.*'))
 
         self.old_files = list()
         self.new_files = list()
         self.new_names_trimmed = list()
-
 
         # ============ frame_right -> frame_tracked_cols ============
 
@@ -210,7 +223,7 @@ class App(customtkinter.CTk):
                                                  width=frame_f_select_width,
                                                  height=160,
                                                  corner_radius=1)
-        self.frame_tracked_cols.place(relx=0.5, rely=0.52, anchor=tkinter.N)
+        self.frame_tracked_cols.place(relx=0.5, rely=0.60, anchor=tkinter.N)
 
         self.label_info_1 = customtkinter.CTkLabel(master=self.frame_tracked_cols,
                                                    text="Tracked columns",
@@ -220,11 +233,6 @@ class App(customtkinter.CTk):
                                                    fg_color=("gray76", "gray38"),  # <- custom tuple-color
                                                    justify=tkinter.LEFT)
         self.label_info_1.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
-
-        # self.head1 = tkinter.Text(self.frame_left, height=2, width=30)
-        # self.head1 = tkinter.Entry(self.frame_left)
-        # # head1.insert(tkinter.END,'Tracked columns')
-        # self.head1.place(relx=0.06, rely=0.5, height=200, width=100, anchor=tkinter.NW)
 
         col_width = 135
         self.col_entry = customtkinter.CTkEntry(master=self.frame_tracked_cols,
@@ -278,45 +286,6 @@ class App(customtkinter.CTk):
         self.track_info_heading_cb.place(relx=0.55, rely=0.47, anchor=tkinter.NW)
 
 
-
-        # ============ frame_right <- ============
-
-        # self.slider_1 = customtkinter.CTkSlider(master=self.frame_right,
-        #                                         width=160,
-        #                                         height=16,
-        #                                         border_width=5,
-        #                                         from_=1,
-        #                                         to=0,
-        #                                         number_of_steps=3,
-        #                                         command=self.progressbar.set)
-        # self.slider_1.place(x=20, rely=0.6, anchor=tkinter.W)
-        # self.slider_1.set(0.3)
-
-        # self.slider_2 = customtkinter.CTkSlider(master=self.frame_right,
-        #                                         width=160,
-        #                                         height=16,
-        #                                         border_width=5,
-        #                                         command=self.progressbar.set)
-        # self.slider_2.place(x=20, rely=0.7, anchor=tkinter.W)
-        # self.slider_2.set(0.7)
-        self.proc_image = ImageTk.PhotoImage(Image.open(PATH + "/images/Update_thin.png").resize((30, 30), Image.ANTIALIAS))
-        self.start_b = customtkinter.CTkButton(master=self.frame_right,
-                                               image=self.proc_image,
-                                               text="Start",
-                                               height=40,
-                                               command=self.wrap_process,
-                                               border_width=0,
-                                               corner_radius=4,
-                                               width=140)
-        self.start_b.place(relx=0.97, rely=0.88, anchor=tkinter.NE)
-        self.out_dir = str()
-        self.output_names = list()
-
-
-
-
-        # self.progressbar.set(0.65)
-
     def on_closing(self, event=0):
         self.destroy()
 
@@ -329,13 +298,23 @@ class App(customtkinter.CTk):
     	# print(self.col_listbox.curselection())
 
     def delete_file(self):
+        def handle_delete(listbox, selection):
+            listbox.delete(selection[0])
+            tmp = listbox.get(0, 100)
+            listbox.delete(0, tkinter.END)
+            for i, item in enumerate(tmp):
+                listbox.insert(tkinter.END, f'{i + 1}. {item.split(". ", 1)[1]}')
+            listbox.activate(selection[0])
+            listbox.see(selection[0])
+
         selection_old = self.old_f_listbox.curselection()
         selection_new = self.new_f_listbox.curselection()
-        print(selection_old)
+
         if selection_old:
-            self.old_f_listbox.delete(selection_old[0])
+            handle_delete(self.old_f_listbox, selection_old)
+             
         elif selection_new:
-            self.new_f_listbox.delete(selection_new[0])
+            handle_delete(self.new_f_listbox, selection_new)
 
     def delete_column(self):
         selection = self.col_listbox.curselection()
@@ -370,14 +349,11 @@ class App(customtkinter.CTk):
 
     def open_new_files(self):
         self.new_files = list()
-        self.new_names_trimmed = list()
         self.new_f_listbox.delete(0, tkinter.END)
         self.new_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
         for i, entry in enumerate(self.new_files):
             trim = os.path.basename(entry)
-            self.new_names_trimmed.append(trim)
             self.new_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
-
 
     def wrap_process(self):
         self.start_b.configure(state=tkinter.DISABLED)
@@ -385,10 +361,23 @@ class App(customtkinter.CTk):
         if not err:
             tkinter.messagebox.showinfo(title='Info', message='Processing completed!')
         self.start_b.configure(state=tkinter.NORMAL)
-
-
+        self.progressbar.set(0)
 
     def process(self):
+        # Update lists after editing
+        def filter_deleted(paths, listbox_items):
+          tmp = list()
+          for path in paths:
+            for substr in listbox_items:
+              if substr.split(". ", 1)[1] in path:
+                tmp.append(path)
+          return tmp
+
+        self.old_files = filter_deleted(self.old_files, self.old_f_listbox.get(0, 100))
+        self.new_files = filter_deleted(self.new_files, self.new_f_listbox.get(0, 100))
+
+        self.new_names_trimmed = [os.path.basename(entry) for entry in self.new_files]
+
         if len(self.old_files) != len(self.new_files):
             tkinter.messagebox.showerror('Configuration error', 'Amount of files does not match between old and new lists ')
             return 1
@@ -418,7 +407,9 @@ class App(customtkinter.CTk):
                 prgs += step
                 d = delta2.Delta2(f_old_path, f_new_path, out_file, index_col, self.tracked_cols, filter_info_heading)
                 stats.append([module.split(' ')[0], *d.process()])
+
                 self.progressbar.set(prgs)
+                self.update_idletasks()
 
             stats_df = pd.DataFrame(stats, columns=['Module', 'New', 'Changed', 'Deleted', 'Total'])
             sh = delta2.ExcelStatsHandler(os.path.join(self.out_dir, 'Statistics.xlsx'), stats_df)
@@ -435,10 +426,7 @@ class App(customtkinter.CTk):
             return 1
 
 
-        
-
-
-
+    
         
 
 if __name__ == "__main__":

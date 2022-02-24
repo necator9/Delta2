@@ -13,13 +13,16 @@ class Delta2Exception(Exception):
     pass
 
 
-class Delta2(object):
+class Delta2(threading.Thread):
 	def __init__(self, f_old, f_new, out_file, index_col, tracked_cols, filter_info_heading):
 		self.pd_diff = PandasDiffHandler(f_old, f_new, index_col, tracked_cols)
 		self.out_file = out_file
 		self.main_diff_col = tracked_cols[0]   # Use first name given in tracked columns as a main column. Diff is found for this column.
 		self.filter_info_heading = filter_info_heading
 
+
+	def run(self):
+		self.process()
 
 	def process(self):
 		out_df, changed, stats = self.pd_diff.find_pd_diff(filter_info_heading=self.filter_info_heading)
