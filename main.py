@@ -403,13 +403,16 @@ class App(customtkinter.CTk):
             self.progressbar.set(0)
             step = 1 / len(self.output_names)
             prgs = 0
+
             for f_old_path, f_new_path, out_file, module in zip(self.old_files, self.new_files, self.output_names, self.new_names_trimmed):
                 prgs += step
+
                 d = delta2.Delta2(f_old_path, f_new_path, out_file, index_col, self.tracked_cols, filter_info_heading)
+
                 stats.append([module.split(' ')[0], *d.process()])
 
                 self.progressbar.set(prgs)
-                self.update_idletasks()
+                self.update()
 
             stats_df = pd.DataFrame(stats, columns=['Module', 'New', 'Changed', 'Deleted', 'Total'])
             sh = delta2.ExcelStatsHandler(os.path.join(self.out_dir, 'Statistics.xlsx'), stats_df)

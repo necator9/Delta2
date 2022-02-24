@@ -5,7 +5,6 @@ import numpy as np
 import difflib
 import functools
 import warnings
-import threading
 
 warnings.filterwarnings("ignore")	
 
@@ -14,18 +13,19 @@ class Delta2Exception(Exception):
     pass
 
 
-class Delta2(threading.Thread):
+class Delta2(object):
 	def __init__(self, f_old, f_new, out_file, index_col, tracked_cols, filter_info_heading):
-		self.pd_diff = PandasDiffHandler(f_old, f_new, index_col, tracked_cols)
+		self.f_old = f_old
+		self.f_new = f_new
+		self.index_col = index_col
+		self.tracked_cols = tracked_cols
+		self.pd_diff = None
 		self.out_file = out_file
 		self.main_diff_col = tracked_cols[0]   # Use first name given in tracked columns as a main column. Diff is found for this column.
 		self.filter_info_heading = filter_info_heading
 
-
-	def run(self):
-		self.process()
-
 	def process(self):
+		self.pd_diff = PandasDiffHandler(self.f_old, self.f_new, self.index_col, self.tracked_cols)
 		out_df, changed, stats = self.pd_diff.find_pd_diff(filter_info_heading=self.filter_info_heading)
 
 		excel_diff = ExcelDiffHandler(self.out_file, out_df, self.main_diff_col)
@@ -172,7 +172,7 @@ class ExcelDiffHandler(object):
 					i += 1
 				i += 1
 
-		diff = list(difflib.unified_diff(text1, text2, n=5000))[3:]
+		diff = list(difflib.unified_diff(str(text1), str(text2), n=5000))[3:]
 
 		add_form = self.workbook.add_format({'bold': True, 'font_color': 'green', 'num_format': '@', 'font_size': 12})
 		rem_form = self.workbook.add_format({'bold': True, 'font_color': 'red', 'font_strikeout': True, 'num_format': '@', 'font_size': 12})
