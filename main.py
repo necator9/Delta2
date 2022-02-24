@@ -103,6 +103,20 @@ class App(customtkinter.CTk):
                                                  corner_radius=2)
         self.frame_left.place(relx=0.02, rely=0.5, anchor=tkinter.W)
 
+        self.delta_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delta.png").resize((120, 120), Image.ANTIALIAS))
+        delta_sign = customtkinter.CTkLabel(self.frame_left, 
+                                        image=self.delta_image,
+                                        fg_color=("gray85", "gray38"),
+                                        height=120,
+                                        width=120,)
+        delta_sign.place(relx=0.14, rely=0.15, anchor=tkinter.W)
+
+        self.progressbar = customtkinter.CTkProgressBar(master=self.frame_left,
+                                                        width=120,
+                                                        height=12)
+        self.progressbar.place(relx=0.5, rely=0.32, anchor=tkinter.S)
+        self.progressbar.set(0)
+
         # ============ frame_right ============
         frame_right_width = 490
         frame_right_height = App.HEIGHT - 30
@@ -263,10 +277,7 @@ class App(customtkinter.CTk):
                                                                variable=self.info_heading_cb)
         self.track_info_heading_cb.place(relx=0.55, rely=0.47, anchor=tkinter.NW)
 
-        # self.progressbar = customtkinter.CTkProgressBar(master=self.frame_tracked_cols,
-        #                                                 width=250,
-        #                                                 height=12)
-        # self.progressbar.place(relx=0.5, rely=0.85, anchor=tkinter.S)
+
 
         # ============ frame_right <- ============
 
@@ -400,9 +411,14 @@ class App(customtkinter.CTk):
 
             stats = list()
 
+            self.progressbar.set(0)
+            step = 1 / len(self.output_names)
+            prgs = 0
             for f_old_path, f_new_path, out_file, module in zip(self.old_files, self.new_files, self.output_names, self.new_names_trimmed):
+                prgs += step
                 d = delta2.Delta2(f_old_path, f_new_path, out_file, index_col, self.tracked_cols, filter_info_heading)
                 stats.append([module.split(' ')[0], *d.process()])
+                self.progressbar.set(prgs)
 
             stats_df = pd.DataFrame(stats, columns=['Module', 'New', 'Changed', 'Deleted', 'Total'])
             sh = delta2.ExcelStatsHandler(os.path.join(self.out_dir, 'Statistics.xlsx'), stats_df)

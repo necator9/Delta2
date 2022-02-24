@@ -59,7 +59,7 @@ class PandasDiffHandler(object):
 	# Remove special characters (CB export handled)
 	def remove_sp_ch(self, df):
 		cols_to_filter = self.tracked_cols
-		specs_to_remove = ['~', '__', '\'\'', '\\_x000D_', '\\\\', '\\r']
+		specs_to_remove = ['~', '__', '\'\'', '\\_x000D_', '\\\\', '\\r', '\$']
 		for col in cols_to_filter:
 			if col in df.columns.tolist():
 				df[col] = df[col].replace(specs_to_remove, '', regex=True)
@@ -110,6 +110,7 @@ class PandasDiffHandler(object):
 			deleted = pd.DataFrame(columns=out_df.columns.tolist()) # Override by empty df
 
 		out_df[f'Old {self.main_diff_col}'] = np.nan
+		out_df[f'Old {self.main_diff_col}'] = out_df[f'Old {self.main_diff_col}'].astype(str)
 		for ch_i in changed[self.main_diff_col].index.tolist():
 			out_df.at[ch_i, f'Old {self.main_diff_col}'] = self.df_old.loc[ch_i][self.main_diff_col]
 
@@ -170,7 +171,7 @@ class ExcelDiffHandler(object):
 		diff = list(difflib.unified_diff(text1, text2, n=5000))[3:]
 
 		add_form = self.workbook.add_format({'bold': True, 'font_color': 'green', 'num_format': '@', 'font_size': 12})
-		rem_form = self.workbook.add_format({'bold': True, 'font_color': 'red', 'num_format': '@', 'font_size': 12})
+		rem_form = self.workbook.add_format({'bold': True, 'font_color': 'red', 'font_strikeout': True, 'num_format': '@', 'font_size': 12})
 
 		insert_el(diff, add_form, rem_form)
 
@@ -289,10 +290,10 @@ class ExcelStatsHandler(object):
 
 
 if __name__ == '__main__':
-	# f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
-	f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
+	f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\LBS 19.0-R4.4.xlsx'
+	# f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
 
-	f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
+	f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\LBS 22.0.xlsx'
 
 	out_file = r'C:\opt\diff_out.xlsx'
 
