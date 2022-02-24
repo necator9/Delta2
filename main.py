@@ -6,8 +6,12 @@ import sys
 import os
 from PIL import Image, ImageTk
 import pandas as pd
+import traceback
 
 import delta2
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -284,11 +288,12 @@ class App(customtkinter.CTk):
         #                                         command=self.progressbar.set)
         # self.slider_2.place(x=20, rely=0.7, anchor=tkinter.W)
         # self.slider_2.set(0.7)
-
+        self.proc_image = ImageTk.PhotoImage(Image.open(PATH + "/images/Update_thin.png").resize((30, 30), Image.ANTIALIAS))
         self.start_b = customtkinter.CTkButton(master=self.frame_right,
+                                               image=self.proc_image,
                                                text="Start",
                                                height=40,
-                                               command=self.process,
+                                               command=self.wrap_process,
                                                border_width=0,
                                                corner_radius=4,
                                                width=140)
@@ -300,9 +305,6 @@ class App(customtkinter.CTk):
 
 
         # self.progressbar.set(0.65)
-
-    def button_event(self):
-        print("Button pressed")
 
     def on_closing(self, event=0):
         self.destroy()
@@ -366,6 +368,15 @@ class App(customtkinter.CTk):
             self.new_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
 
 
+    def wrap_process(self):
+        self.start_b.configure(state=tkinter.DISABLED)
+        err = self.process()
+        if not err:
+            tkinter.messagebox.showinfo(title='Info', message='Processing completed!')
+        self.start_b.configure(state=tkinter.NORMAL)
+
+
+
     def process(self):
         if len(self.old_files) != len(self.new_files):
             tkinter.messagebox.showerror('Configuration error', 'Amount of files does not match between old and new lists ')
@@ -381,15 +392,14 @@ class App(customtkinter.CTk):
         if len(self.out_dir) == 0:
             tkinter.messagebox.showerror('Configuration error', 'An output directory must be selected')
             return 1
-
-        self.output_names = [os.path.join(self.out_dir, name.replace('.xlsx', '_delta.xlsx')) for name in self.new_names_trimmed]
-
-        index_col = 'ID'
-        filter_info_heading = not self.info_heading_cb.get()
-
-        stats = list()
-
         try:
+            self.output_names = [os.path.join(self.out_dir, name.replace('.xlsx', '_delta.xlsx')) for name in self.new_names_trimmed]
+
+            index_col = 'ID'
+            filter_info_heading = not self.info_heading_cb.get()
+
+            stats = list()
+
             for f_old_path, f_new_path, out_file, module in zip(self.old_files, self.new_files, self.output_names, self.new_names_trimmed):
                 d = delta2.Delta2(f_old_path, f_new_path, out_file, index_col, self.tracked_cols, filter_info_heading)
                 stats.append([module.split(' ')[0], *d.process()])
@@ -401,8 +411,18 @@ class App(customtkinter.CTk):
         except PermissionError as err:
             tkinter.messagebox.showerror('Execution error', 'Permission denied: close related *.xlsx files and repeat')
             return 1
+        except delta2.Delta2Exception as err:
+            tkinter.messagebox.showerror('Execution error', err)
+            return 1
+        except Exception as err:
+            tkinter.messagebox.showerror('Execution error', str(traceback.format_exc()))
+            return 1
 
-        tkinter.messagebox.showinfo(title='Info', message='Processing completed!')
+
+        
+
+
+
         
 
 if __name__ == "__main__":

@@ -3,8 +3,14 @@ import subprocess
 import pandas as pd
 import numpy as np
 import difflib
-import functools		
+import functools
+import warnings
 
+warnings.filterwarnings("ignore")	
+
+
+class Delta2Exception(Exception):
+    pass
 
 
 class Delta2(object):
@@ -40,7 +46,11 @@ class PandasDiffHandler(object):
 		# Filter special characters
 		df = self.remove_sp_ch(df)
 		# Set index column
-		df = df.set_index(index_col)
+		if index_col in df.columns.tolist():
+			df = df.set_index(index_col)
+		else:
+			raise Delta2Exception(f'Index column "{index_col}"" is not in the dataframe. Check your excel files.' )
+		
 		# Hadle NaN != Nan
 		df = df.replace({np.nan: None}) 
 
@@ -51,7 +61,10 @@ class PandasDiffHandler(object):
 		cols_to_filter = self.tracked_cols
 		specs_to_remove = ['~', '__', '\'\'', '\\_x000D_', '\\\\', '\\r']
 		for col in cols_to_filter:
-			df[col] = df[col].replace(specs_to_remove, '', regex=True)
+			if col in df.columns.tolist():
+				df[col] = df[col].replace(specs_to_remove, '', regex=True)
+			else:
+				raise Delta2Exception(f'Tracked column "{col}" is not in the dataframe. Check your excel files.' )
 
 		return df
 
@@ -96,6 +109,7 @@ class PandasDiffHandler(object):
 		else:
 			deleted = pd.DataFrame(columns=out_df.columns.tolist()) # Override by empty df
 
+		out_df[f'Old {self.main_diff_col}'] = np.nan
 		for ch_i in changed[self.main_diff_col].index.tolist():
 			out_df.at[ch_i, f'Old {self.main_diff_col}'] = self.df_old.loc[ch_i][self.main_diff_col]
 
@@ -275,7 +289,9 @@ class ExcelStatsHandler(object):
 
 
 if __name__ == '__main__':
-	f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
+	# f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\AVE 22.0-R4.4.xlsx'
+	f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
+
 	f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
 
 	out_file = r'C:\opt\diff_out.xlsx'
