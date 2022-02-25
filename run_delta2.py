@@ -87,8 +87,10 @@ class App(customtkinter.CTk):
         self.title(App.APP_NAME)
         self.geometry(str(App.WIDTH) + 'x' + str(App.HEIGHT))
         self.minsize(App.WIDTH, App.HEIGHT)
-
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
+        images_dir = os.path.join(PATH, 'images')
+        delta_image_path = os.path.join(images_dir, 'delta.png')
+        self.iconphoto(False, tkinter.PhotoImage(file=delta_image_path))
         if sys.platform == 'darwin':
             self.bind('<Command-q>', self.on_closing)
             self.bind('<Command-w>', self.on_closing)
@@ -104,7 +106,7 @@ class App(customtkinter.CTk):
                                                  corner_radius=2)
         self.fr_right.place(relx=0.98, rely=0.5, anchor=tkinter.E)
 
-        self.delta_image = ImageTk.PhotoImage(Image.open(PATH + '/images/delta.png').resize((120, 120), Image.ANTIALIAS))
+        self.delta_image = ImageTk.PhotoImage(Image.open(delta_image_path).resize((120, 120), Image.ANTIALIAS))
         delta_sign = customtkinter.CTkLabel(self.fr_right, 
                                         image=self.delta_image,
                                         fg_color=('gray85', 'gray38'),
