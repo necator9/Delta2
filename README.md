@@ -30,7 +30,7 @@ python run_delta2.py
 1. Pack to run_delta2.exe
 
 ```
-pyinstaller run_delta2.py --distpath InnoSetup/dist --noconsole --add-data="images;images"
+pyinstaller run_delta2.py --distpath InnoSetup/dist --noconsole --add-data="images;images" --icon=InnoSetup\delta.ico
 ```
 
 2. Run run_delta2.exe from `InnoSetup\dist\run_delta2\run_delta2.exe`
