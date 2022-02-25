@@ -2,6 +2,8 @@
 
 Tool for finding and highlighting differences between excel files 
 
+![plot](./images/interface.png)
+
 ## Running as python file
 
 1. Install requirements
