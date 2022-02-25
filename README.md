@@ -4,6 +4,13 @@ Tool for finding and highlighting differences between excel files
 
 ![plot](./images/interface.png)
 
+
+## Setup using packed installer
+
+1. Get the latest [release](https://github.com/necator9/Delta2/releases) of `Delta2_setup.exe`.
+2. The installer will install the `run_delta2.exe` into desired location and create a shortcut on the desktop.
+
+
 ## Running as python file
 
 1. Install requirements
