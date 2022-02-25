@@ -436,9 +436,6 @@ class App(customtkinter.CTk):
             return 1
 
 
-    
-        
-
 if __name__ == '__main__':
     app = App()
     app.start()

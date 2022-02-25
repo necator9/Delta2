@@ -208,56 +208,55 @@ class ExcelDiffHandler(object):
 
 
     def beutifulize(self):
-            df = self.out_df
-            workbook = self.workbook
-            worksheet = self.worksheet
-            worksheet.freeze_panes(1, 0)
+        df = self.out_df
+        workbook = self.workbook
+        worksheet = self.worksheet
+        worksheet.freeze_panes(1, 0)
 
-            # Apply autofiltering (drop-down excel menu) for selected columns
-            (max_row, max_col) = df.shape
-            worksheet.autofilter(0, 0, max_row, max_col)
+        # Apply autofiltering (drop-down excel menu) for selected columns
+        (max_row, max_col) = df.shape
+        worksheet.autofilter(0, 0, max_row, max_col)
 
-            headings_idx = df.index[df['Type'] == 'Heading']
-            headings_idx = [df.index.get_loc(i) + 1 for i in headings_idx]
-            heading_format = workbook.add_format({'bold': True})
-            for i in headings_idx:
-                worksheet.set_row(i, None, heading_format)
+        headings_idx = df.index[df['Type'] == 'Heading']
+        headings_idx = [df.index.get_loc(i) + 1 for i in headings_idx]
+        heading_format = workbook.add_format({'bold': True})
+        for i in headings_idx:
+            worksheet.set_row(i, None, heading_format)
 
-            info_idx = df.index[df['Type'] == 'Information'].tolist()
-            info_idx = [df.index.get_loc(i) + 1 for i in info_idx]
-            info_format = workbook.add_format({'italic': True})
-            for i in info_idx:
-                worksheet.set_row(i, None, info_format)
+        info_idx = df.index[df['Type'] == 'Information'].tolist()
+        info_idx = [df.index.get_loc(i) + 1 for i in info_idx]
+        info_format = workbook.add_format({'italic': True})
+        for i in info_idx:
+            worksheet.set_row(i, None, info_format)
 
-            # Format columns width automatically
-            cols = ['ID', 'Object ID_FKT_LAH_DOORS', 'Object Identifier', 'Feature', 'Status', 'Umsetzung', 'Type']
-            # cols = df.columns.tolist()
-            cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
-            lengths = [max([len(str(s)) for s in df[col].values]) for col in cols if col in df]
-            for length, idx in zip(lengths, cols_idx):
-                worksheet.set_column(idx, idx, length + 1, None, None)
+        # Format columns width automatically
+        cols = ['ID', 'Object ID_FKT_LAH_DOORS', 'Object Identifier', 'Feature', 'Status', 'Umsetzung', 'Type']
+        # cols = df.columns.tolist()
+        cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
+        lengths = [max([len(str(s)) for s in df[col].values]) for col in cols if col in df]
+        for length, idx in zip(lengths, cols_idx):
+            worksheet.set_column(idx, idx, length + 1, None, None)
 
-            # Format columns width manually
-            cols = ['Descr replSigs', self.main_diff_col, 'Diff' ]
-            desc_format = workbook.add_format({'text_wrap': True})
-            cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
-            length = 60
-            for idx in cols_idx:
-                worksheet.set_column(idx, idx, length, desc_format, None)
+        # Format columns width manually
+        cols = ['Descr replSigs', self.main_diff_col, 'Diff' ]
+        desc_format = workbook.add_format({'text_wrap': True})
+        cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
+        length = 60
+        for idx in cols_idx:
+            worksheet.set_column(idx, idx, length, desc_format, None)
 
-            # Hide unused columns
-            cols = ['Modified at', 'CR Referenz', f'Old {self.main_diff_col}']
-            cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
-            hid_format = workbook.add_format({'text_wrap': False})
-            for col in cols:
-                if col not in df:
-                    continue
-                col_idx = df.columns.get_loc(col)
-                worksheet.set_column(col_idx + 1, col_idx + 1, None, hid_format, {'hidden': True})
-                row_idxs = [df.index.get_loc(i) for i in df[pd.notnull(df[col])].index.tolist()]
-                for row in row_idxs:
-                    worksheet.write(row + 1, col_idx + 1, df.iloc[row, col_idx], hid_format)
-
+        # Hide unused columns
+        cols = ['Modified at', 'CR Referenz', f'Old {self.main_diff_col}']
+        cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
+        hid_format = workbook.add_format({'text_wrap': False})
+        for col in cols:
+            if col not in df:
+                continue
+            col_idx = df.columns.get_loc(col)
+            worksheet.set_column(col_idx + 1, col_idx + 1, None, hid_format, {'hidden': True})
+            row_idxs = [df.index.get_loc(i) for i in df[pd.notnull(df[col])].index.tolist()]
+            for row in row_idxs:
+                worksheet.write(row + 1, col_idx + 1, df.iloc[row, col_idx], hid_format)
 
     def quit(self):
         self.writer.save()
@@ -294,17 +293,12 @@ class ExcelStatsHandler(object):
 
 
 if __name__ == '__main__':
-    f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R4_4_PH_CodeBeamer\LBS 19.0-R4.4.xlsx'
-    # f_old_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\AVE 25.0-R5.2.xlsx'
-
-    f_new_path = r'C:\Users\LT45641\Documents\HVLM\Test\E3C_R5.2\Ivan\PH\R5_2_PH_CodeBeamer\LBS 22.0.xlsx'
-
-    out_file = r'C:\opt\diff_out.xlsx'
+    f_old_path = r'C:\Users\old.xlsx'
+    f_new_path = r'C:\Users\new.xlsx'
+    out_file = r'C:\Users\delta.xlsx'
 
     index_col = 'ID'
     tracked_cols = ['Description', 'Feature']  # Columns to track changed requrements
-    # tracked_cols = ['Feature']  # Columns to track changed requrements
-
 
     d = Delta2(f_old_path, f_new_path, out_file, index_col, tracked_cols, filter_info_heading=True)
     d.process()
