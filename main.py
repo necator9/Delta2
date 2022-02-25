@@ -268,14 +268,13 @@ class App(customtkinter.CTk):
                                                 corner_radius=2)
         self.delete_button.place(relx=add_del_relx, rely=0.69, anchor=tkinter.NE)
 
-
-
         self.col_listbox = tkinter.Listbox(self.frame_tracked_cols, selectmode=tkinter.BROWSE)
         self.col_listbox.place(relx=listbox_x_offset, rely=0.53, width=col_width, height=65, anchor=tkinter.NW)
         for entry in self.tracked_cols:
             self.col_listbox.insert(tkinter.END, entry)
 
         scrollbar = tkinter.Scrollbar(self.col_listbox)
+        scrollbar.config(command=self.col_listbox.yview)
         scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.col_listbox.config(yscrollcommand=scrollbar.set)
 
@@ -338,7 +337,8 @@ class App(customtkinter.CTk):
         new_col = self.col_entry.get()
         self.tracked_cols = self.get_all_columns()
         if new_col != '' and new_col not in self.tracked_cols:
-            self.col_listbox.insert(0, new_col)
+            self.col_listbox.insert(tkinter.END, new_col)
+            self.col_listbox.see(tkinter.END)
 
     def get_all_columns(self):
         self.tracked_cols = self.col_listbox.get(0, 100)
