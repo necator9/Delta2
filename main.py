@@ -12,27 +12,27 @@ import traceback
 import delta2
 
 import warnings
-warnings.filterwarnings("ignore")
+warnings.filterwarnings('ignore')
 
 
-customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
+customtkinter.set_appearance_mode('System')  # Modes: 'System' (standard), 'Dark', 'Light'
+customtkinter.set_default_color_theme('dark-blue')  # Themes: 'blue' (standard), 'green', 'dark-blue'
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 class CreateToolTip(object):
-    """
+    '''
     create a tooltip for a given widget
-    """
+    '''
     def __init__(self, widget, text='widget info'):
         self.waittime = 500     #miliseconds
         self.wraplength = 180   #pixels
         self.widget = widget
         self.text = text
-        self.widget.bind("<Enter>", self.enter)
-        self.widget.bind("<Leave>", self.leave)
-        self.widget.bind("<ButtonPress>", self.leave)
+        self.widget.bind('<Enter>', self.enter)
+        self.widget.bind('<Leave>', self.leave)
+        self.widget.bind('<ButtonPress>', self.leave)
         self.id = None
         self.tw = None
 
@@ -55,16 +55,16 @@ class CreateToolTip(object):
 
     def showtip(self, event=None):
         x = y = 0
-        x, y, cx, cy = self.widget.bbox("insert")
+        x, y, cx, cy = self.widget.bbox('insert')
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 20
         # creates a toplevel window
         self.tw = tkinter.Toplevel(self.widget)
         # Leaves only the label and removes the app window
         self.tw.wm_overrideredirect(True)
-        self.tw.wm_geometry("+%d+%d" % (x, y))
+        self.tw.wm_geometry('+%d+%d' % (x, y))
         label = tkinter.Label(self.tw, text=self.text, justify='left',
-                       background="#ffffff", relief='solid', borderwidth=1,
+                       background='#ffffff', relief='solid', borderwidth=1,
                        wraplength = self.wraplength)
         label.pack(ipadx=1)
 
@@ -77,51 +77,51 @@ class CreateToolTip(object):
 
 
 class App(customtkinter.CTk):
-    APP_NAME = "Delta2"
+    APP_NAME = 'Delta2'
     WIDTH = 700
     HEIGHT = 470
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-        self.tracked_cols = ['Description', 'Feature']
-
+        self.tracked_cols = ['Description', 'Feature']  # Hardcoded default columns 
         self.title(App.APP_NAME)
-        self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
+        self.geometry(str(App.WIDTH) + 'x' + str(App.HEIGHT))
         self.minsize(App.WIDTH, App.HEIGHT)
 
-        self.protocol("WM_DELETE_WINDOW", self.on_closing)
-        if sys.platform == "darwin":
-            self.bind("<Command-q>", self.on_closing)
-            self.bind("<Command-w>", self.on_closing)
+        self.protocol('WM_DELETE_WINDOW', self.on_closing)
+        if sys.platform == 'darwin':
+            self.bind('<Command-q>', self.on_closing)
+            self.bind('<Command-w>', self.on_closing)
             self.createcommand('tk::mac::Quit', self.on_closing)
 
-        # ============ frame_left ============
-        self.frame_left = customtkinter.CTkFrame(master=self,
+
+        self.build_menu()
+
+        # ============ fr_right ============
+        self.fr_right = customtkinter.CTkFrame(master=self,
                                                  width=170,
                                                  height=App.HEIGHT-30,
                                                  corner_radius=2)
-        self.frame_left.place(relx=0.98, rely=0.5, anchor=tkinter.E)
+        self.fr_right.place(relx=0.98, rely=0.5, anchor=tkinter.E)
 
-        self.delta_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delta.png").resize((120, 120), Image.ANTIALIAS))
-        delta_sign = customtkinter.CTkLabel(self.frame_left, 
+        self.delta_image = ImageTk.PhotoImage(Image.open(PATH + '/images/delta.png').resize((120, 120), Image.ANTIALIAS))
+        delta_sign = customtkinter.CTkLabel(self.fr_right, 
                                         image=self.delta_image,
-                                        fg_color=("gray85", "gray38"),
+                                        fg_color=('gray85', 'gray38'),
                                         height=120,
                                         width=120,)
         delta_sign.place(relx=0.14, rely=0.15, anchor=tkinter.W)
 
-        self.progressbar = customtkinter.CTkProgressBar(master=self.frame_left,
+        self.progressbar = customtkinter.CTkProgressBar(master=self.fr_right,
                                                         width=120,
                                                         height=12)
         self.progressbar.place(relx=0.5, rely=0.91, anchor=tkinter.S)
         self.progressbar.set(0)
 
-        self.proc_image = ImageTk.PhotoImage(Image.open(PATH + "/images/Update_thin.png").resize((30, 30), Image.ANTIALIAS))
-        self.start_b = customtkinter.CTkButton(master=self.frame_left,
+        self.proc_image = ImageTk.PhotoImage(Image.open(PATH + '/images/Update_thin.png').resize((30, 30), Image.ANTIALIAS))
+        self.start_b = customtkinter.CTkButton(master=self.fr_right,
                                                image=self.proc_image,
-                                               text="Start",
+                                               text='Start',
                                                height=40,
                                                command=self.wrap_process,
                                                border_width=0,
@@ -131,18 +131,18 @@ class App(customtkinter.CTk):
         self.out_dir = str()
         self.output_names = list()
 
-        # ============ frame_right ============
-        frame_right_width = 490
-        frame_right_height = App.HEIGHT - 30
-        self.frame_right = customtkinter.CTkFrame(master=self,
-                                                  width=frame_right_width,
-                                                  height=frame_right_height,
+        # ============ fr_left ============
+        fr_left_width = 490
+        fr_left_height = App.HEIGHT - 30
+        self.fr_left = customtkinter.CTkFrame(master=self,
+                                                  width=fr_left_width,
+                                                  height=fr_left_height,
                                                   corner_radius=2)
-        self.frame_right.place(relx=0.02, rely=0.5, anchor=tkinter.W)
+        self.fr_left.place(relx=0.02, rely=0.5, anchor=tkinter.W)
 
-        # ============ frame_right -> Frame select files ============ 
-        frame_f_select_width = frame_right_width - 30
-        self.frame_f_select = customtkinter.CTkFrame(master=self.frame_right,
+        # ============ fr_left -> Frame select files ============ 
+        frame_f_select_width = fr_left_width - 30
+        self.frame_f_select = customtkinter.CTkFrame(master=self.fr_left,
                                                      width=frame_f_select_width,
                                                      height=240,
                                                      corner_radius=1)
@@ -150,11 +150,11 @@ class App(customtkinter.CTk):
 
 
         self.select_label = customtkinter.CTkLabel(master=self.frame_f_select,
-                                                   text="Select files",
+                                                   text='Select files',
                                                    width=150,
                                                    height=20,
                                                    corner_radius=8,
-                                                   fg_color=("gray76", "gray38"),  # <- custom tuple-color
+                                                   fg_color=('gray76', 'gray38'),  # <- custom tuple-color
                                                   justify=tkinter.LEFT)
         self.select_label.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
@@ -171,11 +171,11 @@ class App(customtkinter.CTk):
         old_f_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.old_f_listbox.config(yscrollcommand=old_f_scrollbar.set)
 
-        add_list_image = ImageTk.PhotoImage(Image.open(PATH + "/images/add-list.png").resize((20, 20), Image.ANTIALIAS))
+        add_list_image = ImageTk.PhotoImage(Image.open(PATH + '/images/add-list.png').resize((20, 20), Image.ANTIALIAS))
         sel_but_rely = 0.12
-        self.old_file_b = customtkinter.CTkButton(master=self.frame_right,
+        self.old_file_b = customtkinter.CTkButton(master=self.fr_left,
                                                   image=add_list_image,
-                                                  text="Old file/s",
+                                                  text='Old file/s',
                                                   command=self.open_old_files,
                                                   border_width=0,
                                                   corner_radius=4,
@@ -183,9 +183,9 @@ class App(customtkinter.CTk):
                                                   width=listbox_width)
         self.old_file_b.place(relx=0.07, rely=sel_but_rely, anchor=tkinter.NW)
 
-        self.new_file_b = customtkinter.CTkButton(master=self.frame_right,
+        self.new_file_b = customtkinter.CTkButton(master=self.fr_left,
                                                   image=add_list_image,
-                                                  text="New file/s",
+                                                  text='New file/s',
                                                   command=self.open_new_files,
                                                   border_width=0,
                                                   corner_radius=4,
@@ -201,7 +201,7 @@ class App(customtkinter.CTk):
         self.new_f_listbox.config(yscrollcommand=new_f_scrollbar.set)
 
         button_size = 40
-        self.del_image = ImageTk.PhotoImage(Image.open(PATH + "/images/delete.png").resize((30, 30), Image.ANTIALIAS))
+        self.del_image = ImageTk.PhotoImage(Image.open(PATH + '/images/delete.png').resize((30, 30), Image.ANTIALIAS))
         self.delete_file_b = customtkinter.CTkButton(master=self.frame_f_select,
                                                      image=self.del_image,
                                                      text='',
@@ -217,26 +217,26 @@ class App(customtkinter.CTk):
         self.new_files = list()
         self.new_names_trimmed = list()
 
-        # ============ frame_right -> frame_tracked_cols ============
+        # ============ fr_left -> frame_tracked_cols ============
 
-        self.frame_tracked_cols = customtkinter.CTkFrame(master=self.frame_right,
+        self.frame_tracked_cols = customtkinter.CTkFrame(master=self.fr_left,
                                                  width=frame_f_select_width,
                                                  height=160,
                                                  corner_radius=1)
         self.frame_tracked_cols.place(relx=0.5, rely=0.60, anchor=tkinter.N)
 
         self.label_info_1 = customtkinter.CTkLabel(master=self.frame_tracked_cols,
-                                                   text="Tracked columns",
+                                                   text='Tracked columns',
                                                    width=150,
                                                    height=20,
                                                    corner_radius=8,
-                                                   fg_color=("gray76", "gray38"),  # <- custom tuple-color
+                                                   fg_color=('gray76', 'gray38'),  # <- custom tuple-color
                                                    justify=tkinter.LEFT)
         self.label_info_1.place(relx=0.5, rely=0.1, anchor=tkinter.CENTER)
 
         col_width = 135
         self.col_entry = customtkinter.CTkEntry(master=self.frame_tracked_cols,
-                               placeholder_text="Enter columns",
+                               placeholder_text='Enter columns',
                                width=col_width,
                                height=40,
                                corner_radius=1)
@@ -244,7 +244,7 @@ class App(customtkinter.CTk):
 
         button_size = 40
         add_del_relx = 0.45
-        plus_image = ImageTk.PhotoImage(Image.open(PATH + "/images/plus.png").resize((15, 15), Image.ANTIALIAS))
+        plus_image = ImageTk.PhotoImage(Image.open(PATH + '/images/plus.png').resize((15, 15), Image.ANTIALIAS))
         self.add_button = customtkinter.CTkButton(master=self.frame_tracked_cols,
                                                   image=plus_image,
                                                   text='',
@@ -281,9 +281,27 @@ class App(customtkinter.CTk):
 
         self.info_heading_cb = tkinter.IntVar()
         self.track_info_heading_cb = customtkinter.CTkCheckBox(master=self.frame_tracked_cols,
-                                                               text="Track info & heading",
+                                                               text='Track info & heading',
                                                                variable=self.info_heading_cb)
         self.track_info_heading_cb.place(relx=0.55, rely=0.47, anchor=tkinter.NW)
+
+    def build_menu(self):
+        menu = tkinter.Menu(self)
+        self.config(menu=menu)
+
+        file_menu = tkinter.Menu(menu)
+        file_menu.add_command(label='Select old files', command=self.open_old_files)
+        file_menu.add_command(label='Select new files', command=self.open_new_files)
+        file_menu.add_command(label='Exit',  command=self.on_closing)
+        menu.add_cascade(label='File', menu=file_menu)
+
+        edit_menu = tkinter.Menu(menu)
+        edit_menu.add_command(label='Start processing', command=self.wrap_process)
+        menu.add_cascade(label='Edit', menu=edit_menu)
+
+        help_menu = tkinter.Menu(menu)
+        help_menu.add_command(label='About')
+        menu.add_cascade(label='Help', menu=help_menu)
 
 
     def on_closing(self, event=0):
@@ -291,11 +309,6 @@ class App(customtkinter.CTk):
 
     def start(self):
         self.mainloop()
-
-    def print_entry(self):
-    	# print(self.col_entry.get())
-    	print(self.col_listbox.get(0, 100))
-    	# print(self.col_listbox.curselection())
 
     def delete_file(self):
         def handle_delete(listbox, selection):
@@ -331,18 +344,10 @@ class App(customtkinter.CTk):
         self.tracked_cols = self.col_listbox.get(0, 100)
         return self.tracked_cols
 
-    def add(self):
-        self.head1.delete(0, tkinter.END)
-        Ans = self.get_all_columns()
-        self.head1.insert(0, Ans)
-
-    def error(self):
-        tkinter.messagebox.showerror("Title", "Message")
-
     def open_old_files(self):
         self.old_files = list()
         self.old_f_listbox.delete(0, tkinter.END)
-        self.old_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
+        self.old_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose old file/s', filetypes=self.filetypes)
         for i, entry in enumerate(self.old_files):
             trim = os.path.basename(entry)
             self.old_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
@@ -350,7 +355,7 @@ class App(customtkinter.CTk):
     def open_new_files(self):
         self.new_files = list()
         self.new_f_listbox.delete(0, tkinter.END)
-        self.new_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose a file', filetypes=self.filetypes)
+        self.new_files = fd.askopenfilenames(parent=self.frame_f_select, title='Choose new file/s', filetypes=self.filetypes)
         for i, entry in enumerate(self.new_files):
             trim = os.path.basename(entry)
             self.new_f_listbox.insert(tkinter.END, f'{i + 1}. {trim}')
@@ -369,7 +374,7 @@ class App(customtkinter.CTk):
           tmp = list()
           for path in paths:
             for substr in listbox_items:
-              if substr.split(". ", 1)[1] in path:
+              if substr.split('. ', 1)[1] in path:
                 tmp.append(path)
           return tmp
 
@@ -432,6 +437,6 @@ class App(customtkinter.CTk):
     
         
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = App()
     app.start()
