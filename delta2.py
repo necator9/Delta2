@@ -247,16 +247,15 @@ class ExcelDiffHandler(object):
 
         # Hide unused columns
         cols = ['Modified at', 'CR Referenz', f'Old {self.main_diff_col}']
-        cols_idx = [df.columns.get_loc(c) + 1 for c in cols if c in df]
         hid_format = workbook.add_format({'text_wrap': False})
         for col in cols:
             if col not in df:
                 continue
             col_idx = df.columns.get_loc(col)
             worksheet.set_column(col_idx + 1, col_idx + 1, None, hid_format, {'hidden': True})
-            row_idxs = [df.index.get_loc(i) for i in df[pd.notnull(df[col])].index.tolist()]
-            for row in row_idxs:
-                worksheet.write(row + 1, col_idx + 1, df.iloc[row, col_idx], hid_format)
+            for row in range(df.shape[0]):
+            	worksheet.write(row + 1, col_idx + 1, df.iloc[row, col_idx], hid_format)
+
 
     def quit(self):
         self.writer.save()
@@ -293,9 +292,9 @@ class ExcelStatsHandler(object):
 
 
 if __name__ == '__main__':
-    f_old_path = r'C:\Users\old.xlsx'
-    f_new_path = r'C:\Users\new.xlsx'
-    out_file = r'C:\Users\delta.xlsx'
+    f_old_path = r'old_path'
+    f_new_path = r'new_path'
+    out_file = r'put_path'
 
     index_col = 'ID'
     tracked_cols = ['Description', 'Feature']  # Columns to track changed requrements
